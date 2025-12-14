@@ -1,0 +1,43 @@
+name: where-is-your-seat
+services:
+  mongo:
+    image: mongo:7
+    container_name: mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: [ "CMD", "mongosh", "--username", "${MONGODB_USERNAME}", "--password", "${MONGODB_PASSWORD}", "--authenticationDatabase", "admin", "--eval", "db.runCommand({ ping: 1 })" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    build: .
+    container_name: api
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: ${SERVER_PORT}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
+      MONGODB_USERNAME: ${MONGODB_USERNAME}
+      MONGODB_PASSWORD: ${MONGODB_PASSWORD}
+      MONGODB_HOST: mongo
+      MONGODB_PORT: "27017"
+      MONGODB_DATABASE: ${MONGODB_DATABASE}
+      MONGODB_AUTH_SOURCE: ${MONGODB_AUTH_SOURCE}
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "${SERVER_PORT}:8080"
+    restart: unless-stopped
+
+
+
+volumes:
+  mongo-data:
